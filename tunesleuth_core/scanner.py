@@ -5,10 +5,10 @@ Recursively scans directories for MP3 files and extracts metadata.
 """
 
 import os
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterator, Optional
 
 from mutagen import File as MutagenFile
 from mutagen.id3 import ID3
@@ -24,7 +24,7 @@ class ScanProgress:
     total_files_found: int = 0
     files_scanned: int = 0
     files_with_errors: int = 0
-    current_file: Optional[str] = None
+    current_file: str | None = None
     errors: list[tuple[str, str]] = field(default_factory=list)
 
     @property
@@ -51,7 +51,7 @@ class Scanner:
 
     def __init__(
         self,
-        progress_callback: Optional[Callable[[ScanProgress], None]] = None,
+        progress_callback: Callable[[ScanProgress], None] | None = None,
     ):
         """
         Initialize the scanner.
@@ -262,14 +262,14 @@ class Scanner:
                 except (ValueError, IndexError):
                     pass
 
-    def _get_id3_text(self, tags: ID3, frame_id: str) -> Optional[str]:
+    def _get_id3_text(self, tags: ID3, frame_id: str) -> str | None:
         """Extract text from an ID3 frame."""
         frame = tags.get(frame_id)
         if frame and hasattr(frame, "text") and frame.text:
             return str(frame.text[0])
         return None
 
-    def _get_tag_value(self, tags, keys: list[str]) -> Optional[str]:
+    def _get_tag_value(self, tags, keys: list[str]) -> str | None:
         """Get a tag value trying multiple possible keys."""
         for key in keys:
             if key in tags:
@@ -280,7 +280,7 @@ class Scanner:
                     return str(value)
         return None
 
-    def _parse_number_pair(self, value: str) -> tuple[Optional[int], Optional[int]]:
+    def _parse_number_pair(self, value: str) -> tuple[int | None, int | None]:
         """
         Parse a number that may be in "X/Y" format.
 

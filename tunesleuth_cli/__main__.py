@@ -4,15 +4,13 @@ TuneSleuth CLI
 Command-line interface for scanning and analyzing music libraries.
 """
 
-import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
-from rich.tree import Tree
 
 from tunesleuth_core import Library, PatternDetector, Scanner, ScanProgress
 

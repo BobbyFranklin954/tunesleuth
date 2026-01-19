@@ -5,28 +5,24 @@ Displays scan results and pattern analysis with confidence visualization.
 """
 
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QPushButton,
-    QFrame,
     QScrollArea,
     QSplitter,
     QTreeWidget,
     QTreeWidgetItem,
-    QHeaderView,
-    QSizePolicy,
-    QGroupBox,
+    QVBoxLayout,
+    QWidget,
 )
 
 from tunesleuth_core import Library, PatternAnalysis, PatternMatch
-from tunesleuth_gui.styles import COLORS, get_confidence_color, get_confidence_badge_style
+from tunesleuth_gui.styles import COLORS, get_confidence_color
 
 
 class StatCard(QFrame):
@@ -184,7 +180,7 @@ class ResultsView(QWidget):
 
     rescan_requested = pyqtSignal()
 
-    def __init__(self, library: Library, analysis: Optional[PatternAnalysis] = None):
+    def __init__(self, library: Library, analysis: PatternAnalysis | None = None):
         super().__init__()
         self.library = library
         self.analysis = analysis
@@ -277,11 +273,11 @@ class ResultsView(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setStyleSheet(f"""
-            QScrollArea {{
+        scroll.setStyleSheet("""
+            QScrollArea {
                 background-color: transparent;
                 border: none;
-            }}
+            }
         """)
 
         container = QWidget()

@@ -2,12 +2,9 @@
 Tests for TuneSleuth data models.
 """
 
-from datetime import datetime
 from pathlib import Path
 
-import pytest
-
-from tunesleuth_core.models import Track, Album, Artist, Library, LibraryStats
+from tunesleuth_core.models import Album, Library, LibraryStats, Track
 
 
 class TestTrack:

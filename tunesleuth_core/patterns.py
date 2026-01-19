@@ -9,7 +9,6 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Optional
 
 from tunesleuth_core.models import Library, Track
 
@@ -87,14 +86,14 @@ class PatternAnalysis:
         return sorted(all_p, key=lambda p: p.confidence, reverse=True)
 
     @property
-    def primary_filename_pattern(self) -> Optional[PatternMatch]:
+    def primary_filename_pattern(self) -> PatternMatch | None:
         """Return the highest confidence filename pattern."""
         if self.filename_patterns:
             return max(self.filename_patterns, key=lambda p: p.confidence)
         return None
 
     @property
-    def primary_folder_pattern(self) -> Optional[PatternMatch]:
+    def primary_folder_pattern(self) -> PatternMatch | None:
         """Return the highest confidence folder pattern."""
         if self.folder_patterns:
             return max(self.folder_patterns, key=lambda p: p.confidence)
@@ -272,7 +271,7 @@ class PatternDetector:
 
             if confidence >= 0.5:
                 # Check if parent folders are consistent (likely artists)
-                artists = set(f.parent.name for f in depth2_folders)
+                artists = {f.parent.name for f in depth2_folders}
 
                 matches.append(
                     PatternMatch(
@@ -409,11 +408,11 @@ class PatternDetector:
         # Also check by artist diversity within folders
         for folder, tracks in folders.items():
             if len(tracks) >= 5:
-                artists = set(
+                artists = {
                     t.artist or t.inferred_artist
                     for t in tracks
                     if t.artist or t.inferred_artist
-                )
+                }
                 # If folder has many different artists, likely a compilation
                 if len(artists) >= len(tracks) * 0.7:
                     if folder not in compilation_folders:
@@ -544,7 +543,7 @@ class PatternDetector:
         except ValueError:
             pass
 
-    def _safe_int(self, value: str) -> Optional[int]:
+    def _safe_int(self, value: str) -> int | None:
         """Safely convert string to int."""
         try:
             return int(value)

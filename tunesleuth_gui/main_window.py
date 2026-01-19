@@ -6,29 +6,24 @@ scanning progress, and navigation to analysis results.
 """
 
 from pathlib import Path
-from typing import Optional
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
-from PyQt6.QtGui import QAction, QIcon, QFont
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QFileDialog,
-    QProgressBar,
-    QStackedWidget,
-    QFrame,
-    QSizePolicy,
+    QMainWindow,
     QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QStackedWidget,
     QStatusBar,
-    QMenuBar,
-    QMenu,
+    QVBoxLayout,
+    QWidget,
 )
 
-from tunesleuth_core import Library, Scanner, ScanProgress, PatternDetector, PatternAnalysis
+from tunesleuth_core import Library, PatternAnalysis, PatternDetector, Scanner, ScanProgress
 from tunesleuth_gui.styles import COLORS, STYLESHEET
 
 
@@ -308,10 +303,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.library: Optional[Library] = None
-        self.analysis: Optional[PatternAnalysis] = None
-        self.scan_worker: Optional[ScanWorker] = None
-        self.analyze_worker: Optional[AnalyzeWorker] = None
+        self.library: Library | None = None
+        self.analysis: PatternAnalysis | None = None
+        self.scan_worker: ScanWorker | None = None
+        self.analyze_worker: AnalyzeWorker | None = None
 
         self._setup_window()
         self._setup_menu()
@@ -369,7 +364,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.scanning_view)
 
         # Results view (will be created dynamically)
-        self.results_view: Optional[QWidget] = None
+        self.results_view: QWidget | None = None
 
     def _setup_status_bar(self):
         """Set up the status bar."""

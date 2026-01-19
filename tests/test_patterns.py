@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from tunesleuth_core.models import Library, Track
-from tunesleuth_core.patterns import PatternDetector, PatternType, PatternMatch
+from tunesleuth_core.patterns import PatternDetector, PatternMatch, PatternType
 
 
 class TestPatternMatch:
@@ -181,7 +181,7 @@ class TestPatternDetector:
 
     def test_inferred_data_applied(self, detector, artist_title_library):
         """Test that inferred data is applied to tracks."""
-        analysis = detector.analyze(artist_title_library)
+        detector.analyze(artist_title_library)
 
         # After analysis, tracks should have inferred data
         for track in artist_title_library.tracks:
