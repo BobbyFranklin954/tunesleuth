@@ -7,7 +7,6 @@ Core data structures representing tracks, albums, artists, and the music library
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -19,27 +18,27 @@ class Track:
 
     # File metadata
     file_size: int = 0
-    modified_date: Optional[datetime] = None
+    modified_date: datetime | None = None
 
     # ID3 tag data (may be None if tags are missing)
-    title: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
-    album_artist: Optional[str] = None
-    track_number: Optional[int] = None
-    track_total: Optional[int] = None
-    disc_number: Optional[int] = None
-    disc_total: Optional[int] = None
-    year: Optional[int] = None
-    genre: Optional[str] = None
-    duration_seconds: Optional[float] = None
-    bitrate: Optional[int] = None
+    title: str | None = None
+    artist: str | None = None
+    album: str | None = None
+    album_artist: str | None = None
+    track_number: int | None = None
+    track_total: int | None = None
+    disc_number: int | None = None
+    disc_total: int | None = None
+    year: int | None = None
+    genre: str | None = None
+    duration_seconds: float | None = None
+    bitrate: int | None = None
 
     # Parsed from filename/path (inferred data)
-    inferred_artist: Optional[str] = None
-    inferred_album: Optional[str] = None
-    inferred_title: Optional[str] = None
-    inferred_track_number: Optional[int] = None
+    inferred_artist: str | None = None
+    inferred_album: str | None = None
+    inferred_title: str | None = None
+    inferred_track_number: int | None = None
 
     @property
     def display_title(self) -> str:
@@ -104,10 +103,10 @@ class Album:
     """Represents an album in the library."""
 
     name: str
-    artist: Optional[str] = None
+    artist: str | None = None
     tracks: list[Track] = field(default_factory=list)
-    year: Optional[int] = None
-    folder_path: Optional[Path] = None
+    year: int | None = None
+    folder_path: Path | None = None
 
     @property
     def track_count(self) -> int:
@@ -187,11 +186,11 @@ class Library:
 
     root_path: Path
     tracks: list[Track] = field(default_factory=list)
-    scan_date: Optional[datetime] = None
+    scan_date: datetime | None = None
 
     # Cached groupings (populated on demand)
-    _artists: Optional[dict[str, Artist]] = field(default=None, repr=False)
-    _albums: Optional[dict[str, Album]] = field(default=None, repr=False)
+    _artists: dict[str, Artist] | None = field(default=None, repr=False)
+    _albums: dict[str, Album] | None = field(default=None, repr=False)
 
     def add_track(self, track: Track) -> None:
         """Add a track to the library."""
@@ -264,9 +263,9 @@ class Library:
         stats.tracks_without_tags = stats.total_tracks - stats.tracks_with_tags
 
         # Unique counts
-        artists = set(t.display_artist for t in self.tracks)
-        albums = set(f"{t.display_artist}|{t.display_album}" for t in self.tracks)
-        genres = set(t.genre for t in self.tracks if t.genre)
+        artists = {t.display_artist for t in self.tracks}
+        albums = {f"{t.display_artist}|{t.display_album}" for t in self.tracks}
+        genres = {t.genre for t in self.tracks if t.genre}
 
         stats.unique_artists = len(artists)
         stats.unique_albums = len(albums)
