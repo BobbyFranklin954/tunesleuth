@@ -339,6 +339,11 @@ def tag(path: Path, source: str, limit: int, dry_run: bool, auto: bool) -> None:
     console.print(f"📚 Found [bold]{len(library)}[/bold] tracks")
     console.print()
 
+    # Run pattern detection to infer artist/title from filenames
+    with console.status("Analyzing patterns..."):
+        detector = PatternDetector()
+        detector.analyze(library)
+
     # Initialize metadata client
     from tunesleuth_core import MusicBrainzClient
 
