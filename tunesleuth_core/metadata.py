@@ -100,7 +100,7 @@ class MusicBrainzClient:
         limit: int = 5,
     ) -> list[MetadataMatch]:
         """
-        Search for track metadata.
+        Search for track metadata using fuzzy matching.
 
         Args:
             title: Track title
@@ -114,12 +114,14 @@ class MusicBrainzClient:
         # Respect rate limit
         self.rate_limiter.wait()
 
-        # Build search query
-        query_parts = [f'recording:"{title}"']
+        # Build search query WITHOUT quotes for fuzzy matching
+        # This allows MusicBrainz to match "Blue Rondo ALa Turk" to "Blue Rondo a la Turk"
+        # and "Fly Me To The Moon" to "Fly Me to the Moon"
+        query_parts = [f'recording:{title}']
         if artist:
-            query_parts.append(f'artist:"{artist}"')
+            query_parts.append(f'artist:{artist}')
         if album:
-            query_parts.append(f'release:"{album}"')
+            query_parts.append(f'release:{album}')
 
         query = " AND ".join(query_parts)
 
@@ -150,7 +152,11 @@ class MusicBrainzClient:
         """
         Look up metadata for a Track object.
 
-        Uses existing metadata or inferred data to search.
+        Prefers inferred data (from filename patterns) over existing ID3 tags when:
+        1. ID3 tags look suspicious (contain filename patterns, camel case, etc.)
+        2. Inferred data is available and differs from ID3 tags
+
+        This handles cases where files have incorrect or auto-generated ID3 tags.
 
         Args:
             track: Track to look up
@@ -159,9 +165,28 @@ class MusicBrainzClient:
         Returns:
             List of MetadataMatch objects sorted by confidence
         """
-        # Use best available data for search
-        title = track.title or track.inferred_title or track.path.stem
-        artist = track.artist or track.inferred_artist
+        # Strategy: Prefer inferred data when available, as it's derived from
+        # filename patterns that are often more reliable than stale/incorrect ID3 tags
+
+        # For title: prefer inferred if it exists, otherwise use ID3
+        if track.inferred_title:
+            title = track.inferred_title
+        elif track.title and ("(" in track.title or ")-" in track.title):
+            # ID3 title looks like a filename, use it but suspicious
+            title = track.title
+        else:
+            title = track.title or track.path.stem
+
+        # For artist: prefer inferred if it exists and differs from ID3
+        # This handles cases where ID3 has wrong artist (e.g., "Sergio Mendez" vs "Quincy Jones")
+        if track.inferred_artist:
+            artist = track.inferred_artist
+        elif track.artist and " " not in track.artist and any(c.isupper() for c in track.artist[1:]):
+            # ID3 artist is camel case - suspicious
+            artist = track.inferred_artist or track.artist
+        else:
+            artist = track.artist
+
         album = track.album or track.inferred_album
 
         return self.search_track(title=title, artist=artist, album=album, limit=limit)

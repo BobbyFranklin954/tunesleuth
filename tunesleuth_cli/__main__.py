@@ -313,7 +313,8 @@ def organize(path: Path, dry_run: bool) -> None:
 @click.option("--limit", type=int, default=3, help="Number of matches to show per track")
 @click.option("--dry-run", is_flag=True, help="Preview matches without writing tags")
 @click.option("--auto", is_flag=True, help="Automatically apply best match (requires confidence >= 90%)")
-def tag(path: Path, source: str, limit: int, dry_run: bool, auto: bool) -> None:
+@click.option("--force", is_flag=True, help="Check all tracks, even those with existing tags")
+def tag(path: Path, source: str, limit: int, dry_run: bool, auto: bool, force: bool) -> None:
     """
     Fetch and update ID3 tags from online metadata sources.
 
@@ -321,6 +322,7 @@ def tag(path: Path, source: str, limit: int, dry_run: bool, auto: bool) -> None:
 
     This command looks up tracks in MusicBrainz and shows potential matches
     with confidence scores. Use --auto to automatically apply high-confidence matches.
+    Use --force to recheck files with existing (potentially incorrect) tags.
     """
     print_banner()
 
@@ -354,8 +356,8 @@ def tag(path: Path, source: str, limit: int, dry_run: bool, auto: bool) -> None:
 
     # Process each track
     for idx, track in enumerate(library.tracks, 1):
-        # Skip tracks with complete tags unless they need improvement
-        if track.has_complete_tags and not auto:
+        # Skip tracks with complete tags unless --force or --auto is used
+        if track.has_complete_tags and not auto and not force:
             skipped_count += 1
             continue
 
