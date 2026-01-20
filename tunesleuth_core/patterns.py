@@ -123,7 +123,8 @@ class PatternDetector:
             r"^(.+?)\s*[-_]\s*(.+?)\s*[-_]\s*(.+?)$",  # Artist - Album - Title
         ],
         PatternType.ARTIST_TITLE: [
-            r"^(.+?)\s*[-_]\s*(.+?)$",  # Artist - Title
+            r"^\((.+?)\)\s*[-_]\s*(.+?)$",  # (Artist)-Title or (Artist)_Title
+            r"^(.+?)\s*[-_]\s*(.+?)$",  # Artist - Title or Artist_Title
         ],
         PatternType.TITLE_ONLY: [
             r"^(.+?)$",  # Just the title
@@ -516,7 +517,9 @@ class PatternDetector:
                         track.inferred_title = groups[2].strip()
 
                     elif pattern_type == PatternType.ARTIST_TITLE and len(groups) >= 2:
-                        track.inferred_artist = groups[0].strip()
+                        artist = groups[0].strip()
+                        # Fix camel case names like "GeorgeBenson" -> "George Benson"
+                        track.inferred_artist = self._split_camel_case(artist)
                         track.inferred_title = groups[1].strip()
 
                     elif pattern_type == PatternType.TITLE_ONLY and len(groups) >= 1:
@@ -549,3 +552,24 @@ class PatternDetector:
             return int(value)
         except (ValueError, TypeError):
             return None
+
+    def _split_camel_case(self, text: str) -> str:
+        """
+        Split camel case text into space-separated words.
+
+        Examples:
+            GeorgeBenson -> George Benson
+            JohnColtrane -> John Coltrane
+            MilesDavis -> Miles Davis
+        """
+        if not text:
+            return text
+
+        # Add space before capital letters
+        result = []
+        for i, char in enumerate(text):
+            if i > 0 and char.isupper() and text[i - 1].islower():
+                result.append(" ")
+            result.append(char)
+
+        return "".join(result)
