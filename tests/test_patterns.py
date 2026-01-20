@@ -255,3 +255,50 @@ class TestPatternAnalysis:
         # Verify sorted by confidence (descending)
         for i in range(len(all_patterns) - 1):
             assert all_patterns[i].confidence >= all_patterns[i + 1].confidence
+
+    def test_parenthesized_artist_pattern(self):
+        """Test detection of (Artist)-Title pattern."""
+        detector = PatternDetector()
+        library = Library(root_path=Path("/music"))
+
+        # Add tracks with (Artist)-Title pattern
+        tracks = [
+            "(GeorgeBenson)-Breezin'.mp3",
+            "(MilesDavis)-SoWhat.mp3",
+            "(JohnColtrane)-BlueTrain.mp3",
+        ]
+        for filename in tracks:
+            library.add_track(Track(
+                path=Path(f"/music/{filename}"),
+                filename=filename,
+            ))
+
+        analysis = detector.analyze(library)
+
+        # Should detect ARTIST_TITLE pattern
+        assert len(analysis.filename_patterns) > 0
+        primary = analysis.primary_filename_pattern
+        assert primary is not None
+        assert primary.pattern_type == PatternType.ARTIST_TITLE
+
+        # Check inferred data
+        for track in library.tracks:
+            assert track.inferred_artist is not None
+            assert track.inferred_title is not None
+            # Check camel case was split
+            assert " " in track.inferred_artist  # Should have spaces
+
+    def test_camel_case_splitting(self):
+        """Test that camel case artist names are split properly."""
+        detector = PatternDetector()
+
+        test_cases = [
+            ("GeorgeBenson", "George Benson"),
+            ("JohnColtrane", "John Coltrane"),
+            ("MilesDavis", "Miles Davis"),
+            ("LED", "LED"),  # All caps stays together
+        ]
+
+        for input_text, expected in test_cases:
+            result = detector._split_camel_case(input_text)
+            assert result == expected
