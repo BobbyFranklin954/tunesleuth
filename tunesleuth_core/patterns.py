@@ -120,11 +120,12 @@ class PatternDetector:
             r"^(\d{1,3})\.\s*(.+?)$",  # 01. Title
         ],
         PatternType.ARTIST_ALBUM_TITLE: [
-            r"^(.+?)\s*[-_]\s*(.+?)\s*[-_]\s*(.+?)$",  # Artist - Album - Title
+            # Artist - Album - Title (but NOT if artist is in parentheses - that's ARTIST_TITLE)
+            r"^(?!\()(.+?)\s*[-_]\s*(.+?)\s*[-_]\s*(.+?)$",
         ],
         PatternType.ARTIST_TITLE: [
-            r"^\((.+?)\)\s*[-_]\s*(.+?)$",  # (Artist)-Title or (Artist)_Title
-            r"^(.+?)\s*[-_]\s*(.+?)$",  # Artist - Title or Artist_Title
+            r"^\((.+?)\)\s*[-_]\s*(.+)$",  # (Artist)-Title or (Artist)_Title (greedy title)
+            r"^(.+?)\s*[-_]\s*(.+)$",  # Artist - Title or Artist_Title (greedy title)
         ],
         PatternType.TITLE_ONLY: [
             r"^(.+?)$",  # Just the title
@@ -518,9 +519,11 @@ class PatternDetector:
 
                     elif pattern_type == PatternType.ARTIST_TITLE and len(groups) >= 2:
                         artist = groups[0].strip()
+                        title = groups[1].strip()
                         # Fix camel case names like "GeorgeBenson" -> "George Benson"
+                        # and titles like "FeelsSoGood-FullVersion" -> "Feels So Good Full Version"
                         track.inferred_artist = self._split_camel_case(artist)
-                        track.inferred_title = groups[1].strip()
+                        track.inferred_title = self._split_camel_case(title)
 
                     elif pattern_type == PatternType.TITLE_ONLY and len(groups) >= 1:
                         track.inferred_title = groups[0].strip()
@@ -556,20 +559,27 @@ class PatternDetector:
     def _split_camel_case(self, text: str) -> str:
         """
         Split camel case text into space-separated words.
+        Also handles hyphens by splitting and processing each part.
 
         Examples:
             GeorgeBenson -> George Benson
             JohnColtrane -> John Coltrane
-            MilesDavis -> Miles Davis
+            FeelsSoGood-FullVersion -> Feels So Good Full Version
         """
         if not text:
             return text
 
-        # Add space before capital letters
-        result = []
-        for i, char in enumerate(text):
-            if i > 0 and char.isupper() and text[i - 1].islower():
-                result.append(" ")
-            result.append(char)
+        # Handle hyphen-separated parts
+        parts = text.split("-")
+        processed_parts = []
 
-        return "".join(result)
+        for part in parts:
+            # Add space before capital letters
+            result = []
+            for i, char in enumerate(part):
+                if i > 0 and char.isupper() and part[i - 1].islower():
+                    result.append(" ")
+                result.append(char)
+            processed_parts.append("".join(result))
+
+        return " ".join(processed_parts)
