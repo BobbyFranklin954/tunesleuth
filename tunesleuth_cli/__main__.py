@@ -308,25 +308,103 @@ def organize(path: Path, dry_run: bool) -> None:
 
 
 @main.command()
-@click.option("--source", type=click.Choice(["musicbrainz", "discogs"]), default="musicbrainz")
-def tag(source: str) -> None:
+@click.argument("path", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--source", type=click.Choice(["musicbrainz"]), default="musicbrainz", help="Metadata source")
+@click.option("--limit", type=int, default=3, help="Number of matches to show per track")
+@click.option("--dry-run", is_flag=True, help="Preview matches without writing tags")
+@click.option("--auto", is_flag=True, help="Automatically apply best match (requires confidence >= 90%)")
+def tag(path: Path, source: str, limit: int, dry_run: bool, auto: bool) -> None:
     """
-    Fetch and update ID3 tags from online sources.
+    Fetch and update ID3 tags from online metadata sources.
 
-    [Coming Soon] This command will connect to metadata services
-    to enrich your library with accurate tags and artwork.
+    PATH is the root directory of your music library.
+
+    This command looks up tracks in MusicBrainz and shows potential matches
+    with confidence scores. Use --auto to automatically apply high-confidence matches.
     """
     print_banner()
 
-    console.print("[yellow]⚠️ This command is coming soon![/yellow]")
+    console.print(f"🔍 Looking up metadata from [bold]{source}[/bold]: {path}")
     console.print()
-    console.print(f"The tag command will connect to [bold]{source}[/bold] to:")
-    console.print("  • Look up accurate metadata for your tracks")
-    console.print("  • Fill in missing ID3 tags")
-    console.print("  • Download album artwork")
-    console.print("  • Fix inconsistent artist/album names")
+
+    # Scan library
+    with console.status("Scanning library..."):
+        scanner = Scanner()
+        library = scanner.scan(path)
+
+    if not library.tracks:
+        console.print("[yellow]No tracks found in library.[/yellow]")
+        return
+
+    console.print(f"📚 Found [bold]{len(library)}[/bold] tracks")
     console.print()
-    console.print("For now, use 'tunesleuth scan' to see current tag coverage.")
+
+    # Initialize metadata client
+    from tunesleuth_core import MusicBrainzClient
+
+    client = MusicBrainzClient(contact="tunesleuth@example.com")
+
+    updated_count = 0
+    skipped_count = 0
+
+    # Process each track
+    for idx, track in enumerate(library.tracks, 1):
+        # Skip tracks with complete tags unless they need improvement
+        if track.has_complete_tags and not auto:
+            skipped_count += 1
+            continue
+
+        console.print(f"[dim]{idx}/{len(library)}[/dim] [bold]{track.filename}[/bold]")
+
+        # Look up metadata
+        with console.status(f"Searching {source}..."):
+            matches = client.lookup_track(track, limit=limit)
+
+        if not matches:
+            console.print("  [yellow]No matches found[/yellow]")
+            console.print()
+            continue
+
+        # Display matches
+        console.print(f"  Found [bold]{len(matches)}[/bold] potential matches:")
+        for i, match in enumerate(matches, 1):
+            confidence_color = _get_confidence_color(match.confidence)
+            console.print(
+                f"    [{confidence_color}]{i}. {match.artist} - {match.title}[/{confidence_color}] "
+                f"({match.confidence * 100:.0f}%)"
+            )
+            if match.album:
+                console.print(f"       Album: {match.album}")
+            if match.year:
+                console.print(f"       Year: {match.year}")
+
+        # Auto-apply if requested and confidence is high
+        if auto and matches[0].confidence >= 0.9:
+            console.print(f"  [green]✓ Auto-applying best match ({matches[0].confidence * 100:.0f}% confidence)[/green]")
+            if not dry_run:
+                # TODO: Write tags to file (implement in next phase)
+                console.print("  [dim](Tag writing not yet implemented)[/dim]")
+            updated_count += 1
+        elif not auto:
+            console.print("  [dim]Use --auto to apply matches automatically[/dim]")
+
+        console.print()
+
+    # Summary
+    console.print(Panel(
+        f"[bold]Lookup Complete[/bold]\n\n"
+        f"Tracks processed: {len(library) - skipped_count}\n"
+        f"Tracks skipped (already tagged): {skipped_count}\n"
+        f"Potential updates: {updated_count}",
+        title="📊 Summary",
+        border_style="green",
+    ))
+
+    if dry_run:
+        console.print("\n[dim]This was a dry run. No tags were modified.[/dim]")
+    else:
+        console.print("\n[yellow]Note: Tag writing is not yet implemented.[/yellow]")
+        console.print("[dim]Matches are shown for preview only.[/dim]")
 
 
 if __name__ == "__main__":
